@@ -36,13 +36,14 @@ console.log(getUser(1).name);
 const express = require('express');
 const userRouter = require('./routes/user')
 const connectDB = require('./lib/connect');
-const { hiUser } = require('./controllers/user');
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(express.json());
 app.use(userRouter);
 
-console.log(process.env.DB_URL)
+//console.log(bcrypt.hashSync('password',15));
+console.log(process.env.DATABASE_URL)
 
 app.listen(3000, () => {
     connectDB();
