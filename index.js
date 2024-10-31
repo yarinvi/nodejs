@@ -36,7 +36,7 @@ console.log(getUser(1).name);
 const express = require('express');
 const userRouter = require('./routes/user')
 const connectDB = require('./lib/connect');
-const bcrypt = require('bcrypt');
+// const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(express.json());
