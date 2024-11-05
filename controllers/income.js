@@ -2,6 +2,7 @@ const { z } = require("zod");
 const User = require("../models/user");
 const { userIdValidation } = require("../lib/validation/user");
 const { incomeSchema } = require("../lib/validation/income");
+const Income = require("../models/income");
 
 
 const addIncome = async (req, res) => {
@@ -24,6 +25,9 @@ const addIncome = async (req, res) => {
     });
 
     await income.save();
+
+    userExists.incomes.push(income);
+    await userExists.save();
 
     return res.status(200).json({ message: "Income added successfully" });
   } catch (error) {
