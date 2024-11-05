@@ -1,14 +1,30 @@
 const { z } = require("zod");
+const User = require("../models/user");
+const { userIdValidation } = require("../lib/validation/user");
+const { incomeSchema } = require("../lib/validation/income");
+
 
 const addIncome = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = userIdValidation.parse(req.params.userId);
+    const{title, description, amount, tag, currency} = incomeSchema.parse(req.body);
+
 
     const userExists = await User.findById(userId);
     if (!userExists) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
+    const income = new Income({
+      title,
+      description,
+      amount,
+      tag,
+      currency,
+    });
+
+    await income.save();
+
     return res.status(200).json({ message: "Income added successfully" });
   } catch (error) {
     console.log(error);
