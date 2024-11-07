@@ -8,6 +8,8 @@ const Income = require("../models/income");
 const addIncome = async (req, res) => {
   try {
     const userId = userIdValidation.parse(req.params.userId);
+    console.log(req.body);
+    console.log(userId);
     const{title, description, amount, tag, currency} = incomeSchema.parse(req.body);
 
 
@@ -49,7 +51,7 @@ const getIncomes = async (req, res) => {
     }
 
     const incomes = await Income.find({_id: {$in: userExists.incomes}});
-    
+
     return res.status(200).json(incomes);
 
   } catch (error) {
@@ -64,4 +66,6 @@ const getIncomes = async (req, res) => {
 
 module.exports = {
   addIncome,
+  getIncomes,
+
 };
