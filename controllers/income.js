@@ -8,8 +8,8 @@ const Income = require("../models/income");
 const addIncome = async (req, res) => {
   try {
     const userId = userIdValidation.parse(req.params.userId);
-    console.log(req.body);
-    console.log(userId);
+    // console.log(req.body);
+    // console.log(userId);
     const{title, description, amount, tag, currency} = incomeSchema.parse(req.body);
 
 
@@ -103,8 +103,43 @@ const updateIncome = async (req, res) => {
   }
 }
 
+const deleteIncome = async (req, res) => {
+  try {
+    // console.log(req.params);
+    
+    const userId = userIdValidation.parse(req.params.userId);
+    const incomeId = incomeIdValidation.parse(req.params.incomeId);
+
+    const userExists = await User.findById(userId);
+    if (!userExists) {
+      return res.status(404).json({ message: "User not found" });
+    } 
+
+    if(!userExists.incomes.includes(incomeId)) {
+      return res.status(404).json({ message: "Income not found" });
+    }
+
+    // console.log(incomeId);
+
+    const deletedIncome = await Income.findByIdAndDelete(incomeId);
+
+    if(!deletedIncome) {
+      return res.status(404).json({ message: "Income not deleted" });
+    }
+    
+    return res.status(200).json({ message: "Income deleted successfully" });
+  } catch (error) {
+    console.log(error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  } 
+} 
+
 module.exports = {
   addIncome,
   getIncomes,
   updateIncome,
+  deleteIncome, 
 };
