@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const { z } = require('zod');
-const { signUpSchema, signInSchema } = require('../lib/validation/user');
+const { signUpSchema, signInSchema, updateUserSchema, userIdValidation } = require('../lib/validation/user');
 const bcrypt = require('bcrypt');
 const { setTokenCookie } = require('../lib/validation/utils');
 
@@ -80,9 +80,62 @@ const signOut = async (req, res) => {
     }
 }
 
+const updateUser = async (req, res) => {
+    try {
+        const { fullName, username, email, password } = updateUserSchema.parse(req.body);
+
+        const userId = userIdValidation.parse(req.params.userId);
+
+        const userExists = await User.findById(userId);
+        if (!userExists) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (username && username === userExists.username) { // check if username is both provided and the same as the old one
+            return res.status(400).json({ message: 'Username is the same as the old one' });
+        }
+
+        if (email && email === userExists.email) { // check if email is both provided and the same as the old one
+            return res.status(400).json({ message: 'Email is the same as the old one' });
+        }
+
+        let hashedPassword;
+        if (password) { // check if password is provided in req 
+            hashedPassword = await bcrypt.hash(password, 10);
+            console.log(hashedPassword, userExists.password); // without changing logic to checkpw the hash and salt algorithm will change the
+            // hashed password even if it is the same one as the old one so hashedPassword === userExists.password wouldn't work (used in signIn).
+            if (await bcrypt.compare(password, userExists.password)) { // check if the new password is the same as the old one
+                return res.status(400).json({ message: 'Password is the same as the last one entered' });
+            }
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, {
+            fullName: fullName || userExists.fullName,
+            username: username || userExists.username,
+            email: email || userExists.email,
+            password: hashedPassword || userExists.password
+        });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "Failed to update user" });
+        }
+
+        setTokenCookie(res, updatedUser, process.env.JWT_SECRET);
+
+        return res.status(200).json({ message: "User updated successfully" });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ message: error.errors[0].message });
+        }
+        console.log(error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
 module.exports = {
     signUp,
     signIn,
     signOut,
+    updateUser,
 };
 

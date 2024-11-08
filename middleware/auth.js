@@ -29,6 +29,6 @@ const auth = async (req, res, next) =>{
 }
 
 // finish income (add delete) done
-// finish expense, add, get , update and delete 
+// finish expense, add, get , update and delete  done
 // add update user to be able to change password email fullname and username 
 // 
