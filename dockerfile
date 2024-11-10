@@ -19,3 +19,14 @@ EXPOSE 3000
 
 # Start the Node.js application using the start script from package.json
 CMD ["npm", "start"]
+
+
+# Build the container
+# docker build -t <container_name> .
+# Run the container
+# docker run --env-file .env -p 3000:3000 <container_name>
+
+# Stop the container and delete it
+# docker ps
+# docker stop <container_id>
+# docker rm <container_id>
