@@ -119,9 +119,11 @@ const deleteIncome = async (req, res) => {
       return res.status(404).json({ message: "Income not found" });
     }
 
-    // console.log(incomeId);
-
     const deletedIncome = await Income.findByIdAndDelete(incomeId);
+    // console.log(incomeId);
+    userExists.incomes = userExists.incomes.filter(income => income.toString() !== incomeId);
+
+    await userExists.save();
 
     if(!deletedIncome) {
       return res.status(404).json({ message: "Income not deleted" });

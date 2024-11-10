@@ -113,8 +113,11 @@ const deleteExpense = async (req, res) => {
         if(!userExists.expenses.includes(expenseId)) {
             return res.status(404).json({ message: "Expense not found" });
         }
-
+        // also delete from user's expenses
         const deletedExpense = await Expense.findByIdAndDelete(expenseId);
+
+        userExists.expenses = userExists.expenses.filter(expense => expense.toString() !== expenseId);
+        await userExists.save();
 
         if(!deletedExpense) {
             return res.status(404).json({ message: "Expense not deleted" });
