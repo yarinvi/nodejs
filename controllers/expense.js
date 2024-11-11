@@ -85,7 +85,7 @@ const updateExpense = async (req, res) => {
         });
 
         if(!updatedExpense) {
-            return res.status(404).json({ message: "Expense not found" });
+            return res.status(404).json({ message: "Expense not updated" });
         }
 
         await updatedExpense.save();

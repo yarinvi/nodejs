@@ -18,7 +18,7 @@ const signUp = async (req, res) => {
         if (emailExists) {
             return res.status(400).json({ message: 'Email already exists' });
         }
-        // by this point we know that the username and email are not taken
+        // at this point we know that the username and email are not taken
         // we can now hash the password and create the user
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({
