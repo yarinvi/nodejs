@@ -1,141 +1,150 @@
-const User = require('../models/user');
-const { z } = require('zod');
-const { signUpSchema, signInSchema, updateUserSchema, userIdValidation } = require('../lib/validation/user');
-const bcrypt = require('bcrypt');
-const { setTokenCookie } = require('../lib/validation/utils');
+const User = require("../models/user");
+const { z } = require("zod");
+const {
+  signUpSchema,
+  signInSchema,
+  updateUserSchema,
+  userIdValidation,
+} = require("../lib/validation/user");
+const bcrypt = require("bcrypt");
+const { setTokenCookie } = require("../lib/validation/utils");
 
 const signUp = async (req, res) => {
-    try {
-        const { fullName, username, email, password } = signUpSchema.parse(req.body);
-        //signUpSchema.parse({ fullName, username, email, password });
+  try {
+    const { fullName, username, email, password } = signUpSchema.parse(
+      req.body
+    );
+    //signUpSchema.parse({ fullName, username, email, password });
 
-        const usernameExists = await User.findOne({ username });
-        if (usernameExists) {
-            return res.status(400).json({ message: 'Username already exists' });
-        }
-
-        const emailExists = await User.findOne({ email });
-        if (emailExists) {
-            return res.status(400).json({ message: 'Email already exists' });
-        }
-        // at this point we know that the username and email are not taken
-        // we can now hash the password and create the user
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({
-            fullName,
-            username,
-            email,
-            password: hashedPassword
-        });
-
-        const newUser = await user.save();
-
-        if (!newUser) {
-            return res.status(400).json({ message: 'Failed to create user' });
-        }
-
-        setTokenCookie(res, newUser, process.env.JWT_SECRET);
-
-        return res.status(201).json({ message: 'User created successfully' });
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: error.errors[0].message });
-        }
-        return res.status(500).json({ message: 'Internal server error' });
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({ message: "Username already exists" });
     }
-}
 
-const signIn = async (req, res) => {
-    try {
-        const { username, password } = signInSchema.parse(req.body);
-
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(400).json({ message: 'Username does not exist' });
-        }
-
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch) {
-            return res.status(400).json({ message: 'Invalid password' });
-        }
-
-        setTokenCookie(res, user, process.env.JWT_SECRET);
-        return res.status(200).json({ message: 'User signed in successfully' });
-
-
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: error.errors[0].message });
-        }
-        return res.status(500).json({ message: 'Internal server error' });
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      return res.status(400).json({ message: "Email already exists" });
     }
-}
+    // at this point we know that the username and email are not taken
+    // we can now hash the password and create the user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      fullName,
+      username,
+      email,
+      password: hashedPassword,
+    });
 
-const signOut = async (req, res) => {
-    try {   
-        res.clearCookie('token');
-        return res.status(200).json({ message: 'User logged out successfully' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Internal server error' });
+    const newUser = await user.save();
+
+    if (!newUser) {
+      return res.status(400).json({ message: "Failed to create user" });
     }
-}
 
-const updateUser = async (req, res) => {
-    try {
-        const { fullName, username, email, password } = updateUserSchema.parse(req.body);
+    setTokenCookie(res, newUser, process.env.JWT_SECRET);
 
-        const userId = userIdValidation.parse(req.params.userId);
-
-        const userExists = await User.findById(userId);
-        if (!userExists) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        if (username && username === userExists.username) { // check if username is both provided and the same as the old one
-            return res.status(400).json({ message: 'Username is the same as the old one' });
-        }
-
-        if (email && email === userExists.email) { // check if email is both provided and the same as the old one
-            return res.status(400).json({ message: 'Email is the same as the old one' });
-        }
-
-        let hashedPassword;
-        if (password) { // check if password is provided in req 
-            hashedPassword = await bcrypt.hash(password, 10);
-            console.log(hashedPassword, userExists.password); // without changing logic to checkpw the hash and salt algorithm will change the
-            // hashed password even if it is the same one as the old one so hashedPassword === userExists.password wouldn't work (used in signIn).
-            if (await bcrypt.compare(password, userExists.password)) { // check if the new password is the same as the old one
-                return res.status(400).json({ message: 'Password is the same as the last one entered' });
-            }
-        }
-
-        const updatedUser = await User.findByIdAndUpdate(userId, {
-            fullName: fullName || userExists.fullName,
-            username: username || userExists.username,
-            email: email || userExists.email,
-            password: hashedPassword || userExists.password
-        });
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: "Failed to update user" });
-        }
-
-        setTokenCookie(res, updatedUser, process.env.JWT_SECRET);
-
-        return res.status(200).json({ message: "User updated successfully" });
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: error.errors[0].message });
-        }
-        console.log(error);
-        return res.status(500).json({ message: 'Internal server error' });
+    return res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
     }
-}
-
-module.exports = {
-    signUp,
-    signIn,
-    signOut,
-    updateUser,
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
+const signIn = async (req, res) => {
+  try {
+    const { username, password } = signInSchema.parse(req.body);
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ message: "Username does not exist" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
+
+    setTokenCookie(res, user, process.env.JWT_SECRET);
+    return res.status(200).json({ message: "User signed in successfully" });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const signOut = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    return res.status(200).json({ message: "User logged out successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const userId = userIdValidation.parse(req.params.userId);
+    const { fullName, username, email, password } = updateUserSchema.parse(req.body);
+
+    const userExists = await User.findById(userId);
+    if (!userExists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const usernameExists = await User.findOne({ username });
+    if (username && username === userExists.username && username === usernameExists.username) {
+      return res.status(400).json({
+        message: "Username is the same as the old one or username is already used by another user",
+      });
+    }
+
+    const emailExists = await User.findOne({ email });
+    if (email && email === userExists.email && email === emailExists.email) {
+      return res.status(400).json({
+        message: "Email is the same as the old one or email is already used by another user",
+      });
+    }
+
+    let hashedPassword;
+    if (password) {
+      if (await bcrypt.compare(password, userExists.password)) {
+        return res.status(400).json({ 
+          message: "Password is the same as the last one entered" 
+        });
+      }
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      fullName: fullName || userExists.fullName,
+      username: username || userExists.username,
+      email: email || userExists.email,
+      password: hashedPassword || userExists.password,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Failed to update user" });
+    }
+
+    setTokenCookie(res, updatedUser, process.env.JWT_SECRET);
+
+    return res.status(200).json({ message: "User updated successfully" });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
+    }
+    console.log(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = {
+  signUp,
+  signIn,
+  signOut,
+  updateUser,
+};
